@@ -11,15 +11,15 @@ bookingRouter.get("/:id", (req, res) => {
 })
 
 bookingRouter.post("/", (req, res) => {
-    res.send({title: "creat bookings"});
+    res.send({title: "creat booking"});
 })
 
 bookingRouter.put("/:id", (req, res) => {
-    res.send({title: "update bookings"});
+    res.send({title: "update booking"});
 })
 
 bookingRouter.delete("/:id", (req, res) => {
-    res.send({title: "delete bookings"});
+    res.send({title: "delete booking"});
 })
 
 bookingRouter.get("/user/:id", (req, res) => {
