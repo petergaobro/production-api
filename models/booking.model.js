@@ -45,22 +45,26 @@ const bookingSchema = mongoose.Schema({
             message: 'Start date must be in the past',
         }
     },
-    // renewalDate: {
-    //     type: Date,
-    //     required: true,
-    //     validate: {
-    //         validator: function (value) {
-    //             return value > this.startDate;
-    //         },
-    //         message: 'Renewal date must be after the start date',
-    //     }
-    // },
     renewalDate: {
         type: Date,
         required: true,
+        default: function () {
+            const renewalPeriods = {
+                daily: 1,
+                weekly: 7,
+                monthly: 30,
+                yearly: 365,
+            };
+
+            const daysToAdd = renewalPeriods[this.frequency] || 30;
+            const base = new Date(this.startDate || new Date());
+            return new Date(base.setDate(base.getDate() + daysToAdd));
+        },
         validate: {
             validator: function (value) {
                 // Ensure both dates exist and are valid
+                // return this.startDate && value > this.startDate;
+                // return value > this.startDate;
                 return this.startDate && value > this.startDate;
             },
             message: 'Renewal date must be after the start date',
@@ -85,24 +89,25 @@ bookingSchema.pre('save', function (next) {
             monthly: 30,
             yearly: 365,
         };
-        // Jan 1st
-        // Monthly
-        // 30 days
-        // Jan 31st
 
         const daysToAdd = renewalPeriods[this.frequency];
 
-        if (daysToAdd) {
-            this.renewalDate = new Date(this.startDate);
-            this.renewalDate.setDate(this.renewalDate.getDate() + daysToAdd);
+        // ✅ Check if frequency is valid
+        if (!daysToAdd) {
+            return next(new Error('Invalid or missing frequency for automatic renewal date.'));
         }
+
+        // ✅ Safe calculation: add days in milliseconds to avoid date overflow issues
+        const start = new Date(this.startDate);
+        const renewal = new Date(start.getTime() + daysToAdd * 24 * 60 * 60 * 1000); // 加天数（毫秒）
+
+        this.renewalDate = renewal;
     }
 
-    // Auto-update the status if renewal date has passed
-    if (this.renewalDate && this.renewalDate < new Date()) {
+    // ✅ If the renewal date is already in the past, mark the status as expired
+    if (this.renewalDate && this.renewalDate.getTime() < Date.now()) {
         this.status = 'expired';
     }
-
     next();
 });
 
